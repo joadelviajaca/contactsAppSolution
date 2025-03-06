@@ -4,7 +4,7 @@ import { catchError, map, Observable, of, pipe, tap } from 'rxjs';
 import { loginResponse, RegisterResponse, Token, User } from '../../shared/interfaces/auth';
 import { ContactsService } from '../../contacts/services/contacts.service';
 import { Router } from '@angular/router';
-import {jwtDecode} from 'jwt-decode';
+import { jwtDecode } from 'jwt-decode';
 import { ValidationErrors } from '@angular/forms';
 
 @Injectable({
@@ -19,19 +19,19 @@ export class AuthService {
   private isLoggedSignal = signal<boolean>(false);
   private router: Router = inject(Router);
 
-  constructor(){
+  constructor() {
     let userId = localStorage.getItem('userId');
     if (userId) {
       this._userId = userId;
       this.isLoggedSignal.set(true);
     }
-    this.validateToken().subscribe(resp=> console.log(resp))
+    this.validateToken().subscribe(resp => console.log(resp))
   }
 
   getDecodedAccessToken(token: string): Token | null {
     try {
       return jwtDecode(token);
-    } catch(Error) {
+    } catch (Error) {
       return null;
     }
   }
@@ -40,30 +40,39 @@ export class AuthService {
     return this.isLoggedSignal.asReadonly();
   }
 
-  isLoggedF(): boolean{
-    if (this.isLogged()){
+  isLoggedF(): boolean {
+    if (this.isLogged()) {
       return true;
     }
-    else{
+    else {
       this.router.navigateByUrl('/login');
       return false;
     }
   }
 
-  validateToken(){
-    const headers = new HttpHeaders().set('Authorization', `Bearer ${localStorage.getItem('token') || ''}`) 
+  validateToken() {
+    const headers = new HttpHeaders().set('Authorization', `Bearer ${localStorage.getItem('token') || ''}`)
     // ESTO NO ES EQUIVALENTE YA QUE SET DEVUELVE UNA CABECERA NUEVA NO MODIFICA 
     // const header = new HttpHeaders()
     // header.set('Authorization', `Bearer ${localStorage.getItem('token') || ''}`)
-    return this.http.get<loginResponse>(`${this.baseUrl}/verify`, {headers})
-    .pipe(
-      map( resp => {
-        // Guardar la información de usuario
-        return true;
-      }),
-      catchError( err => of(false))
+    return this.http.get<loginResponse>(`${this.baseUrl}/verify`, { headers })
+      .pipe(
+        map(resp => {
+          this.setUserSession(resp.token);
+          return true;
+        }),
+        catchError(err => of(false))
 
-    )
+      )
+  }
+
+  setUserSession(token: string) {
+    const decodedToken = this.getDecodedAccessToken(token);
+    if (decodedToken) {
+      this._userId = decodedToken.userId;
+      localStorage.setItem('token', token);
+      this.isLoggedSignal.set(true);
+    }
   }
 
   login(email: string, password: string) {
@@ -72,19 +81,13 @@ export class AuthService {
       .pipe(
         tap({
           next: response => {
-            const token = this.getDecodedAccessToken(response.token);
-            if (token) {
-              this._userId = token.userId;
-              localStorage.setItem('userId', token.userId)
-              localStorage.setItem('token', response.token);
-              this.isLoggedSignal.set(true);
-            }
+              this.setUserSession(response.token);
           }
         })
       )
   }
 
-  get userId(){
+  get userId() {
     return this._userId;
   }
 
@@ -93,8 +96,8 @@ export class AuthService {
     return this.http.post<any>(`${this.baseUrl}/register`, userData);
   }
 
-  logOut(){
-    localStorage.removeItem('userId');
+  logOut() {
+    localStorage.removeItem('token');
     this._userId = '';
     this.isLoggedSignal.set(false);
     this.router.navigateByUrl('/login')
