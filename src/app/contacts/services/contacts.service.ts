@@ -31,15 +31,19 @@ export class ContactsService {
 
   
   getContacts(): void{
+    console.log('getcontacts')
     const token = localStorage.getItem('token') || '';
-    const headers: HttpHeaders = new HttpHeaders()
-    .set('Authorization', `Bearer ${token}`);
+    // const headers: HttpHeaders = new HttpHeaders()
+    // .set('Authorization', `Bearer ${token}`);
     this.userId = this.authService.userId;
     if (this.userId) {
-      // this.http.get<Contact[]>(`${this.urlBase}/${this.userId}`)
-      this.http.get<Contact[]>(`${this.urlBase}/${this.userId}`, {headers})
+      this.http.get<Contact[]>(`${this.urlBase}/${this.userId}`)
+      // this.http.get<Contact[]>(`${this.urlBase}/${this.userId}`, {headers})
       .subscribe({
-        next: contacts => this.contactsSignal.set(contacts),
+        next: contacts => {
+          console.log('Contacts: ',contacts)
+          this.contactsSignal.set(contacts)
+        },
         error: error => console.log('Error: ', error)
       })
     }

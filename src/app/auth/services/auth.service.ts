@@ -69,6 +69,7 @@ export class AuthService {
   setUserSession(token: string) {
     const decodedToken = this.getDecodedAccessToken(token);
     if (decodedToken) {
+      console.log('Decoded token: ',decodedToken)
       this._userId = decodedToken.userId;
       localStorage.setItem('token', token);
       this.isLoggedSignal.set(true);
